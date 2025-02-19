@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- 根据需要调整 Content-Security-Policy -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://cdn.donmai.us https://cdn.dribbble.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
+  <title>Secure AES-256 Tool</title>
+  <style>
+    /* 全局 box-sizing 设置 */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    
+    /* 背景使用指定图片，不随暗夜模式变化 */
+    body {
+      background: url("https://cdn.donmai.us/sample/cd/34/sample-cd34f3978d20b65ff910f9f93693aa63.jpg") no-repeat center center fixed;
+      background-size: cover;
+    }
+    :root { --primary: #2c3e50; --danger: #e74c3c; }
+    body { 
+      font-family: system-ui, sans-serif; 
+      max-width: 800px; 
+      margin: 0 auto; 
+      padding: 20px; 
+    }
+    .container { 
+      background: rgba(255, 255, 255, 0.95); 
+      padding: 2rem; 
+      border-radius: 10px; 
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+    }
+    textarea { 
+      width: 100%; 
+      height: 100px; 
+      padding: 1rem; 
+      margin: 1rem 0; 
+      border: 2px solid #ddd; 
+      border-radius: 5px; 
+    }
+    input[type="password"] { 
+      width: 100%; 
+      padding: 1rem; 
+      margin: 1rem 0; 
+      border: 2px solid #ddd; 
+      border-radius: 5px; 
+    }
+    button { 
+      background: var(--primary); 
+      color: white; 
+      border: none; 
+      padding: 1rem 2rem; 
+      border-radius: 5px; 
+      cursor: pointer; 
+      transition: background 0.3s, transform 0.1s;
+    }
+    button:hover {
+      background: #34495e;
+    }
+    button:disabled { 
+      background: #95a5a6; 
+      cursor: not-allowed; 
+    }
+    button:active { 
+      transform: scale(0.95); 
+    }
+    /* 添加处理中的按钮闪烁动画 */
+    @keyframes flashWhite {
+      0% { background-color: var(--primary); }
+      50% { background-color: #f0f0f0; }
+      100% { background-color: var(--primary); }
+    }
+    .processing {
+      animation: flashWhite 1s infinite;
+    }
+    .alert { 
+      padding: 1rem; 
+      border-radius: 5px; 
+      margin: 1rem 0; 
+    }
+    .alert-danger { 
+      background: #f8d7da; 
+      color: var(--danger); 
+      border: 1px solid #f5c6cb; 
+    }
+    .alert-success { 
+      background: #d4edda; 
+      color: #155724; 
+      border: 1px solid #c3e6cb; 
+    }
+    .security-info { 
+      font-size: 0.9rem; 
+      color: #7f8c8d; 
+      margin-top: 2rem; 
+    }
+    /* 耗时信息 */
+    #timeTaken {
+      font-size: 0.9rem;
+      color: #2c3e50;
+      margin-top: 1rem;
+    }
+    /* 白天模式下系统锁定倒计时闪烁：黑红闪烁 */
+    @keyframes flashBlackRed {
+      0% { color: red; }
+      50% { color: black; }
+      100% { color: red; }
+    }
+    /* 暗夜模式下系统锁定倒计时闪烁：红白闪烁 */
+    @keyframes flashRedWhite {
+      0% { color: red; }
+      50% { color: white; }
+      100% { color: red; }
+    }
+    /* 默认使用白天模式动画 */
+    #lockCountdown {
+      animation: flashBlackRed 1s infinite;
+    }
+    /* 根据浏览器的暗色模式偏好自动切换 */
+    @media (prefers-color-scheme: dark) {
+      .container {
+        background: rgba(0, 0, 0, 0.8);
+        color: #ddd;
+      }
+      input, textarea {
+        background: #333;
+        color: #ddd;
+        border: 2px solid #555;
+      }
+      button {
+        background: #555;
+      }
+      button:hover {
+        background: #666;
+      }
+      .alert-danger {
+        background: #5c0000;
+        color: #ffaaaa;
+        border: 1px solid #ff6666;
+      }
+      .alert-success {
+        background: #005c00;
+        color: #aaffaa;
+        border: 1px solid #66ff66;
+      }
+      /* 暗夜模式下倒计时动画：红白闪烁 */
+      #lockCountdown {
+        animation: flashRedWhite 1s infinite;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔐 安全加密工具 v2.0</h1>
+    
+    <!-- 提示信息区域 -->
+    <div id="alert" class="alert" style="display: none;"></div>
+    <!-- 封锁倒计时显示 -->
+    <div id="lockCountdown" class="alert" style="display: none;"></div>
+    
+    <div>
+      <h3>输入文本</h3>
+      <textarea id="input" placeholder="请输入要加密/解密的文本"></textarea>
+    </div>
+
+    <div>
+      <h3>安全密码</h3>
+      <input type="password" id="password" placeholder="至少12位，包含大小写字母、数字和符号">
+    </div>
+
+    <div style="margin: 2rem 0; display: flex; gap: 1rem;">
+      <button onclick="handleEncrypt()" id="encryptBtn">加密</button>
+      <button onclick="handleDecrypt()" id="decryptBtn">解密</button>
+    </div>
+
+    <div>
+      <h3>输出结果</h3>
+      <textarea id="output" readonly></textarea>
+      <!-- 显示耗时 -->
+      <div id="timeTaken"></div>
+    </div>
+
+    <div class="security-info">
+      <p>🔒 安全特性：</p>
+      <ul>
+        <li>AES-256-GCM 认证加密</li>
+        <li>PBKDF2 60,000 次迭代</li>
+        <li>尝试次数限制 + 智能延迟</li>
+        <li>客户端本地处理（无网络传输）</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // 安全配置参数（迭代次数 60,000 次）
+    const SECURITY_CONFIG = {
+      pbkdf2: {
+        name: "PBKDF2",
+        hash: "SHA-256",
+        iterations: 60000,
+        saltSize: 16
+      },
+      aes: {
+        name: "AES-GCM",
+        length: 256,
+        ivSize: 12,
+        tagSize: 16
+      },
+      attempts: {
+        max: 5,
+        lockTime: 5 * 60 * 1000,
+        delaySteps: [0, 5000, 10000, 30000, 300000]
+      }
+    };
+
+    // 状态管理
+    let security = {
+      attempts: 0,
+      locked: false,
+      timer: null
+    };
+
+    const timeTakenEl = document.getElementById("timeTaken");
+
+    // 主加密函数：利用 Web Crypto API 执行 AES-256-GCM 加密
+    async function encrypt(text, password) {
+      const salt = crypto.getRandomValues(new Uint8Array(SECURITY_CONFIG.pbkdf2.saltSize));
+      const iv = crypto.getRandomValues(new Uint8Array(SECURITY_CONFIG.aes.ivSize));
+      const baseKey = await crypto.subtle.importKey(
+        "raw",
+        new TextEncoder().encode(password),
+        "PBKDF2",
+        false,
+        ["deriveKey"]
+      );
+      const key = await crypto.subtle.deriveKey(
+        {
+          ...SECURITY_CONFIG.pbkdf2,
+          salt: salt
+        },
+        baseKey,
+        SECURITY_CONFIG.aes,
+        false,
+        ["encrypt", "decrypt"]
+      );
+      const encrypted = await crypto.subtle.encrypt(
+        {
+          ...SECURITY_CONFIG.aes,
+          iv: iv
+        },
+        key,
+        new TextEncoder().encode(text)
+      );
+      const combined = new Uint8Array([
+        ...salt,
+        ...iv,
+        ...new Uint8Array(encrypted)
+      ]);
+      return btoa(String.fromCharCode(...combined));
+    }
+
+    // 主解密函数：利用 Web Crypto API 解密数据
+    async function decrypt(data, password) {
+      const raw = Uint8Array.from(atob(data), c => c.charCodeAt(0));
+      const salt = raw.slice(0, SECURITY_CONFIG.pbkdf2.saltSize);
+      const iv = raw.slice(
+        SECURITY_CONFIG.pbkdf2.saltSize,
+        SECURITY_CONFIG.pbkdf2.saltSize + SECURITY_CONFIG.aes.ivSize
+      );
+      const ciphertext = raw.slice(SECURITY_CONFIG.pbkdf2.saltSize + SECURITY_CONFIG.aes.ivSize);
+      const baseKey = await crypto.subtle.importKey(
+        "raw",
+        new TextEncoder().encode(password),
+        "PBKDF2",
+        false,
+        ["deriveKey"]
+      );
+      const key = await crypto.subtle.deriveKey(
+        {
+          ...SECURITY_CONFIG.pbkdf2,
+          salt: salt
+        },
+        baseKey,
+        SECURITY_CONFIG.aes,
+        false,
+        ["encrypt", "decrypt"]
+      );
+      try {
+        const decrypted = await crypto.subtle.decrypt(
+          {
+            ...SECURITY_CONFIG.aes,
+            iv: iv
+          },
+          key,
+          ciphertext
+        );
+        return new TextDecoder().decode(decrypted);
+      } catch (e) {
+        if (e.name === "OperationError") {
+          throw new Error("认证失败 - 数据可能被篡改");
+        }
+        throw e;
+      }
+    }
+
+    // 安全控制器：包装加密/解密操作并应用延迟
+    async function withSecurity(fn) {
+      if (security.locked) {
+        showAlert("系统已锁定，请稍后再试", "danger");
+        return;
+      }
+      const delay = SECURITY_CONFIG.attempts.delaySteps[security.attempts] || 300000;
+      await new Promise(resolve => setTimeout(resolve, delay));
+      try {
+        return await fn();
+      } catch (error) {
+        handleSecurityError(error);
+        throw error;
+      }
+    }
+
+    // 启动系统锁定倒计时显示
+    function startLockCountdown(lockDuration) {
+      const countdownEl = document.getElementById("lockCountdown");
+      countdownEl.style.display = "block";
+      let remaining = lockDuration;
+      const interval = setInterval(() => {
+        remaining -= 1000;
+        if (remaining <= 0) {
+          clearInterval(interval);
+          countdownEl.style.display = "none";
+          countdownEl.textContent = "";
+          security.locked = false;
+          security.attempts = 0;
+          showAlert("系统已解锁，请继续操作", "success");
+        } else {
+          const seconds = Math.floor(remaining / 1000);
+          countdownEl.textContent = `系统已锁定，请等待 ${seconds} 秒后重试`;
+        }
+      }, 1000);
+    }
+
+    // 错误处理：记录失败尝试并在达到上限后锁定系统
+    function handleSecurityError(error) {
+      security.attempts++;
+      if (security.attempts >= SECURITY_CONFIG.attempts.max) {
+        security.locked = true;
+        const lockDuration = SECURITY_CONFIG.attempts.lockTime;
+        startLockCountdown(lockDuration);
+        showAlert(`尝试次数过多，系统已锁定 ${lockDuration/60000} 分钟`, "danger");
+        security.timer = setTimeout(() => {
+          security.locked = false;
+          security.attempts = 0;
+        }, lockDuration);
+        localStorage.setItem('securityState', JSON.stringify({
+          attempts: security.attempts,
+          lockTime: Date.now() + lockDuration
+        }));
+      } else {
+        showAlert(`操作失败 (剩余尝试次数: ${SECURITY_CONFIG.attempts.max - security.attempts})`, "danger");
+        localStorage.setItem('securityState', JSON.stringify({
+          attempts: security.attempts,
+          lockTime: Date.now() + SECURITY_CONFIG.attempts.lockTime
+        }));
+      }
+    }
+
+    // UI 提示信息控制函数
+    function showAlert(message, type = "danger") {
+      const alertEl = document.getElementById("alert");
+      alertEl.style.display = "block";
+      alertEl.className = `alert alert-${type}`;
+      alertEl.textContent = message;
+    }
+
+    // 密码验证：检查密码是否满足复杂性要求，并返回不满足的项
+    function validatePasswordDetailed(pwd) {
+      const errors = [];
+      if (pwd.length < 12) {
+        errors.push("长度至少12位");
+      }
+      if (!/[A-Z]/.test(pwd)) {
+        errors.push("需要包含大写字母");
+      }
+      if (!/[a-z]/.test(pwd)) {
+        errors.push("需要包含小写字母");
+      }
+      if (!/[0-9]/.test(pwd)) {
+        errors.push("需要包含数字");
+      }
+      if (!/[\W_]/.test(pwd)) {
+        errors.push("需要包含特殊字符");
+      }
+      return errors;
+    }
+
+    // 将毫秒转换为几小时几分钟几秒的格式
+    function formatElapsedTime(ms) {
+      const totalSeconds = Math.floor(ms / 1000);
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      return `${hours}小时${minutes}分钟${seconds}秒`;
+    }
+
+    // 事件处理：加密操作，添加按钮反馈、耗时显示及禁用输入、输出区域也禁用
+    async function handleEncrypt() {
+      const encryptBtn = document.getElementById("encryptBtn");
+      const decryptBtn = document.getElementById("decryptBtn");
+      const inputField = document.getElementById("input");
+      const passwordField = document.getElementById("password");
+      const outputField = document.getElementById("output");
+      // 禁用所有交互控件
+      encryptBtn.disabled = true;
+      decryptBtn.disabled = true;
+      inputField.disabled = true;
+      passwordField.disabled = true;
+      outputField.disabled = true;
+      encryptBtn.textContent = "加密中...";
+      // 添加闪烁动画效果
+      encryptBtn.classList.add("processing");
+      const startTime = Date.now();
+      try {
+        await withSecurity(async () => {
+          const text = inputField.value;
+          const password = passwordField.value;
+          const errors = validatePasswordDetailed(password);
+          if (errors.length > 0) {
+            showAlert("密码不符合要求：" + errors.join("，"), "danger");
+            return;
+          }
+          const result = await encrypt(text, password);
+          outputField.value = result;
+          security.attempts = 0;
+        });
+      } finally {
+        const elapsed = Date.now() - startTime;
+        timeTakenEl.textContent = `加密完成用时：${formatElapsedTime(elapsed)}`;
+        // 恢复所有控件
+        encryptBtn.disabled = false;
+        decryptBtn.disabled = false;
+        inputField.disabled = false;
+        passwordField.disabled = false;
+        outputField.disabled = false;
+        encryptBtn.textContent = "加密";
+        decryptBtn.textContent = "解密";
+        // 移除闪烁动画效果
+        encryptBtn.classList.remove("processing");
+      }
+    }
+
+    // 事件处理：解密操作，添加按钮反馈、耗时显示及禁用输入、输出区域也禁用
+    async function handleDecrypt() {
+      const encryptBtn = document.getElementById("encryptBtn");
+      const decryptBtn = document.getElementById("decryptBtn");
+      const inputField = document.getElementById("input");
+      const passwordField = document.getElementById("password");
+      const outputField = document.getElementById("output");
+      // 禁用所有交互控件
+      encryptBtn.disabled = true;
+      decryptBtn.disabled = true;
+      inputField.disabled = true;
+      passwordField.disabled = true;
+      outputField.disabled = true;
+      decryptBtn.textContent = "解密中...";
+      // 添加闪烁动画效果
+      decryptBtn.classList.add("processing");
+      const startTime = Date.now();
+      try {
+        await withSecurity(async () => {
+          const data = inputField.value;
+          const password = passwordField.value;
+          const errors = validatePasswordDetailed(password);
+          if (errors.length > 0) {
+            showAlert("密码不符合要求：" + errors.join("，"), "danger");
+            return;
+          }
+          const result = await decrypt(data, password);
+          outputField.value = result;
+          security.attempts = 0;
+        });
+      } finally {
+        const elapsed = Date.now() - startTime;
+        timeTakenEl.textContent = `解密完成用时：${formatElapsedTime(elapsed)}`;
+        // 恢复所有控件
+        encryptBtn.disabled = false;
+        decryptBtn.disabled = false;
+        inputField.disabled = false;
+        passwordField.disabled = false;
+        outputField.disabled = false;
+        encryptBtn.textContent = "加密";
+        decryptBtn.textContent = "解密";
+        // 移除闪烁动画效果
+        decryptBtn.classList.remove("processing");
+      }
+    }
+
+    // 初始化安全状态
+    function initSecurity() {
+      const saved = JSON.parse(localStorage.getItem('securityState'));
+      if (saved && saved.lockTime > Date.now()) {
+        security.attempts = saved.attempts;
+        security.locked = true;
+        startLockCountdown(saved.lockTime - Date.now());
+      }
+    }
+
+    initSecurity();
+  </script>
+</body>
+</html>
