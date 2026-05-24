@@ -13,12 +13,6 @@
 * **零信任 / 纯客户端处理**：所有加解密逻辑全量在用户浏览器本地完成，**100% 无网络传输**，绝对保障数据隐私。
 * **安全兜底机制**：引入尝试次数限制与智能延迟，防止本地遭受自动化密码爆破。
 
-## 🛠️ 技术栈 (Tech Stack)
-
-* **Frontend**: HTML5 / JavaScript (ES6+) / Tailwind CSS
-* **Crypto Core**: Web Crypto API (Native / Web Standard)
-* **Deployment**: Vercel
-
 ## 🚀 本地开发与运行 (Local Setup)
 
 由于采用纯前端架构，无需复杂的后端配置，克隆即可运行：
