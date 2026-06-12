@@ -1,511 +1,2378 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- 根据需要调整 Content-Security-Policy -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://cdn.donmai.us https://cdn.dribbble.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: http:">
   <title>Secure AES-256 Tool</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <style>
-    /* 全局 box-sizing 设置 */
-    *, *::before, *::after {
+    /* CSS变量定义 */
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f5f5f5;
+      --text-primary: #1a1a1a;
+      --text-secondary: #666666;
+      --border-color: #e0e0e0;
+      --accent-color: #2c3e50;
+      --accent-hover: #34495e;
+      --danger-color: #e74c3c;
+      --success-color: #27ae60;
+      --card-bg: #ffffff;
+      --input-bg: #ffffff;
+      --shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #1a1a1a;
+      --bg-secondary: #2d2d2d;
+      --text-primary: #e0e0e0;
+      --text-secondary: #999999;
+      --border-color: #404040;
+      --accent-color: #3498db;
+      --accent-hover: #2980b9;
+      --danger-color: #e74c3c;
+      --success-color: #2ecc71;
+      --card-bg: #2d2d2d;
+      --input-bg: #333333;
+      --shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    /* 全局样式 */
+    * {
       box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
-    
-    /* 背景使用指定图片，不随暗夜模式变化 */
+
     body {
-      background: url("https://cdn.donmai.us/sample/cd/34/sample-cd34f3978d20b65ff910f9f93693aa63.jpg") no-repeat center center fixed;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       background-size: cover;
+      min-height: 100vh;
+      color: var(--text-primary);
+      transition: background-color 0.3s;
     }
-    :root { --primary: #2c3e50; --danger: #e74c3c; }
-    body { 
-      font-family: system-ui, sans-serif; 
-      max-width: 800px; 
-      margin: 0 auto; 
-      padding: 20px; 
+
+    body.has-bg {
+      position: relative;
     }
-    .container { 
-      background: rgba(255, 255, 255, 0.95); 
-      padding: 2rem; 
-      border-radius: 10px; 
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+
+    body.has-bg::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: -1;
     }
-    textarea { 
-      width: 100%; 
-      height: 100px; 
-      padding: 1rem; 
-      margin: 1rem 0; 
-      border: 2px solid #ddd; 
-      border-radius: 5px; 
+
+    /* 导航栏 */
+    .navbar {
+      display: flex;
+      align-items: center;
+      padding: 0 1rem;
+      height: 60px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
-    input[type="password"] { 
-      width: 100%; 
-      padding: 1rem; 
-      margin: 1rem 0; 
-      border: 2px solid #ddd; 
-      border-radius: 5px; 
+
+    .nav-brand {
+      font-weight: bold;
+      font-size: 1.2rem;
+      color: var(--accent-color);
     }
-    button { 
-      background: var(--primary); 
-      color: white; 
-      border: none; 
-      padding: 1rem 2rem; 
-      border-radius: 5px; 
-      cursor: pointer; 
-      transition: background 0.3s, transform 0.1s;
+
+    .nav-tabs {
+      display: flex;
+      gap: 0;
+      margin-left: 2rem;
     }
+
+    .nav-tab {
+      padding: 0.5rem 1.2rem;
+      border: none;
+      background: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      font-size: 0.95rem;
+    }
+
+    .nav-tab:hover {
+      color: var(--text-primary);
+    }
+
+    .nav-tab.active {
+      color: var(--accent-color);
+      border-bottom-color: var(--accent-color);
+    }
+
+    .nav-actions {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 50%;
+      transition: background 0.2s;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+    }
+
+    .icon-btn:hover {
+      background: var(--bg-secondary);
+    }
+
+    .lang-select {
+      padding: 0.4rem 0.8rem;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background: var(--input-bg);
+      color: var(--text-primary);
+      font-size: 0.9rem;
+    }
+
+    /* 主内容区 */
+    .main-content {
+      padding: 1rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    /* 容器 */
+    .container {
+      background: var(--card-bg);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border-color);
+    }
+
+    /* 表单元素 */
+    textarea {
+      width: 100%;
+      height: 120px;
+      padding: 1rem;
+      margin: 0.5rem 0;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--input-bg);
+      color: var(--text-primary);
+      font-family: inherit;
+      resize: vertical;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent-color);
+    }
+
+    input[type="password"],
+    input[type="text"] {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      margin: 0.5rem 0;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--input-bg);
+      color: var(--text-primary);
+      font-size: 1rem;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--accent-color);
+    }
+
+    button {
+      background: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 0.8rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 1rem;
+    }
+
     button:hover {
-      background: #34495e;
+      background: var(--accent-hover);
     }
-    button:disabled { 
-      background: #95a5a6; 
-      cursor: not-allowed; 
+
+    button:disabled {
+      background: var(--text-secondary);
+      cursor: not-allowed;
+      opacity: 0.6;
     }
-    button:active { 
-      transform: scale(0.95); 
+
+    button:active {
+      transform: scale(0.98);
     }
-    /* 添加处理中的按钮闪烁动画 */
+
+    /* 按钮组 */
+    .btn-group {
+      display: flex;
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border-color);
+    }
+
+    /* 处理中动画 */
     @keyframes flashWhite {
-      0% { background-color: var(--primary); }
-      50% { background-color: #f0f0f0; }
-      100% { background-color: var(--primary); }
+      0% { background-color: var(--accent-color); }
+      50% { background-color: var(--bg-secondary); }
+      100% { background-color: var(--accent-color); }
     }
+
     .processing {
       animation: flashWhite 1s infinite;
     }
-    .alert { 
-      padding: 1rem; 
-      border-radius: 5px; 
-      margin: 1rem 0; 
+
+    /* 提示框 */
+    .alert {
+      padding: 1rem;
+      border-radius: 8px;
+      margin: 1rem 0;
+      border: 1px solid;
     }
-    .alert-danger { 
-      background: #f8d7da; 
-      color: var(--danger); 
-      border: 1px solid #f5c6cb; 
+
+    .alert-danger {
+      background: rgba(231, 76, 60, 0.1);
+      color: var(--danger-color);
+      border-color: rgba(231, 76, 60, 0.3);
     }
-    .alert-success { 
-      background: #d4edda; 
-      color: #155724; 
-      border: 1px solid #c3e6cb; 
+
+    .alert-success {
+      background: rgba(39, 174, 96, 0.1);
+      color: var(--success-color);
+      border-color: rgba(39, 174, 96, 0.3);
     }
-    .security-info { 
-      font-size: 0.9rem; 
-      color: #7f8c8d; 
-      margin-top: 2rem; 
+
+    /* 密码强度指示器 */
+    .password-strength {
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      border-radius: 6px;
+      background: var(--bg-secondary);
     }
+
+    .strength-bar {
+      height: 6px;
+      border-radius: 3px;
+      background: var(--border-color);
+      margin-bottom: 0.5rem;
+      transition: width 0.3s, background-color 0.3s;
+    }
+
+    .strength-text {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    /* 安全信息 */
+    .security-info {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .security-info ul {
+      margin-left: 1.5rem;
+      margin-top: 0.5rem;
+    }
+
     /* 耗时信息 */
     #timeTaken {
       font-size: 0.9rem;
-      color: #2c3e50;
+      color: var(--text-secondary);
       margin-top: 1rem;
     }
-    /* 白天模式下系统锁定倒计时闪烁：黑红闪烁 */
+
+    /* 密码输入框包装器 */
+    .password-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .password-input-wrapper input {
+      flex: 1;
+      padding-right: 40px;
+    }
+
+    /* 密码指示灯 */
+    .password-indicator {
+      position: absolute;
+      right: 12px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: var(--danger-color);
+      animation: blink-red 1s infinite;
+    }
+
+    .password-indicator.valid {
+      background-color: #00bcd4;
+      animation: none;
+    }
+
+    /* 红色闪烁动画 */
+    @keyframes blink-red {
+      0%, 100% {
+        opacity: 1;
+        box-shadow: 0 0 4px var(--danger-color);
+      }
+      50% {
+        opacity: 0.3;
+        box-shadow: none;
+      }
+    }
+
+    /* 密码要求列表 */
+    .password-requirements {
+      margin-top: 0.5rem;
+      padding: 0.75rem;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+
+    .password-requirements p {
+      margin: 0 0 0.5rem 0;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .password-requirements ul {
+      margin: 0;
+      padding-left: 1.2rem;
+      list-style-type: none;
+    }
+
+    .password-requirements li {
+      margin: 0.3rem 0;
+      color: var(--text-secondary);
+      position: relative;
+    }
+
+    .password-requirements li::before {
+      content: "•";
+      color: var(--danger-color);
+      position: absolute;
+      left: -0.8rem;
+    }
+
+    .password-requirements li.met::before {
+      content: "✓";
+      color: var(--success-color);
+    }
+
+    /* 文件加密区域 */
+    .file-drop-zone {
+      border: 2px dashed var(--border-color);
+      border-radius: 12px;
+      padding: 3rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin: 1rem 0;
+    }
+
+    .file-drop-zone:hover,
+    .file-drop-zone.drag-over {
+      border-color: var(--accent-color);
+      background: rgba(52, 152, 219, 0.05);
+    }
+
+    .file-drop-zone p {
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+    }
+
+    .file-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      margin: 1rem 0;
+    }
+
+    .file-info .file-name {
+      flex: 1;
+      font-weight: 500;
+    }
+
+    .file-info .file-size {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 6px;
+      background: var(--bg-secondary);
+      border-radius: 3px;
+      overflow: hidden;
+      margin: 1rem 0;
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      background: var(--accent-color);
+      transition: width 0.1s;
+    }
+
+    /* 设置页面 */
+    .settings-panel {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .settings-group {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border-color);
+    }
+
+    .settings-group h3 {
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    .bg-preview {
+      width: 100%;
+      height: 120px;
+      border-radius: 8px;
+      background-size: cover;
+      background-position: center;
+      background-color: var(--bg-secondary);
+      margin-bottom: 1rem;
+    }
+
+    .bg-url-input {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .bg-url-input input {
+      flex: 1;
+      padding: 0.6rem 1rem;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--input-bg);
+      color: var(--text-primary);
+      font-size: 0.9rem;
+    }
+
+    .bg-url-input input:focus {
+      outline: none;
+      border-color: var(--accent-color);
+    }
+
+    .theme-options,
+    .lang-options {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .theme-btn,
+    .lang-btn {
+      flex: 1;
+      padding: 0.75rem;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--input-bg);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.95rem;
+    }
+
+    .theme-btn:hover,
+    .lang-btn:hover {
+      border-color: var(--accent-color);
+    }
+
+    .theme-btn.active,
+    .lang-btn.active {
+      border-color: var(--accent-color);
+      background: rgba(52, 152, 219, 0.1);
+      color: var(--accent-color);
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+      .navbar {
+        flex-wrap: wrap;
+        height: auto;
+        padding: 0.5rem;
+      }
+
+      .nav-tabs {
+        margin-left: 0;
+        margin-top: 0.5rem;
+        width: 100%;
+        justify-content: center;
+      }
+
+      .nav-actions {
+        margin-left: auto;
+        margin-top: 0.5rem;
+      }
+
+      .main-content {
+        padding: 0.5rem;
+      }
+
+      .container {
+        padding: 1.5rem;
+      }
+
+      .btn-group {
+        flex-direction: column;
+      }
+
+      .theme-options,
+      .lang-options {
+        flex-direction: column;
+      }
+    }
+
+    /* 锁定倒计时动画 */
     @keyframes flashBlackRed {
-      0% { color: red; }
-      50% { color: black; }
-      100% { color: red; }
+      0% { color: var(--danger-color); }
+      50% { color: var(--text-primary); }
+      100% { color: var(--danger-color); }
     }
-    /* 暗夜模式下系统锁定倒计时闪烁：红白闪烁 */
+
     @keyframes flashRedWhite {
-      0% { color: red; }
-      50% { color: white; }
-      100% { color: red; }
+      0% { color: var(--danger-color); }
+      50% { color: var(--text-primary); }
+      100% { color: var(--danger-color); }
     }
-    /* 默认使用白天模式动画 */
+
     #lockCountdown {
       animation: flashBlackRed 1s infinite;
     }
-    /* 根据浏览器的暗色模式偏好自动切换 */
-    @media (prefers-color-scheme: dark) {
-      .container {
-        background: rgba(0, 0, 0, 0.8);
-        color: #ddd;
-      }
-      input, textarea {
-        background: #333;
-        color: #ddd;
-        border: 2px solid #555;
-      }
-      button {
-        background: #555;
-      }
-      button:hover {
-        background: #666;
-      }
-      .alert-danger {
-        background: #5c0000;
-        color: #ffaaaa;
-        border: 1px solid #ff6666;
-      }
-      .alert-success {
-        background: #005c00;
-        color: #aaffaa;
-        border: 1px solid #66ff66;
-      }
-      /* 暗夜模式下倒计时动画：红白闪烁 */
-      #lockCountdown {
-        animation: flashRedWhite 1s infinite;
-      }
+
+    [data-theme="dark"] #lockCountdown {
+      animation: flashRedWhite 1s infinite;
+    }
+
+    /* 自定义光标样式 */
+    .target-cursor-wrapper {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 0;
+      height: 0;
+      pointer-events: none;
+      z-index: 9999;
+      mix-blend-mode: difference;
+      transform: translate(-50%, -50%);
+    }
+
+    .target-cursor-dot {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 4px;
+      height: 4px;
+      background: #fff;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      will-change: transform;
+    }
+
+    .target-cursor-corner {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 12px;
+      height: 12px;
+      border: 3px solid #fff;
+      will-change: transform;
+    }
+
+    .corner-tl {
+      transform: translate(-150%, -150%);
+      border-right: none;
+      border-bottom: none;
+    }
+
+    .corner-tr {
+      transform: translate(50%, -150%);
+      border-left: none;
+      border-bottom: none;
+    }
+
+    .corner-br {
+      transform: translate(50%, 50%);
+      border-left: none;
+      border-top: none;
+    }
+
+    .corner-bl {
+      transform: translate(-150%, 50%);
+      border-right: none;
+      border-top: none;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🔐 安全加密工具 v2.0</h1>
-    
-    <!-- 提示信息区域 -->
-    <div id="alert" class="alert" style="display: none;"></div>
-    <!-- 封锁倒计时显示 -->
-    <div id="lockCountdown" class="alert" style="display: none;"></div>
-    
-    <div>
-      <h3>输入文本</h3>
-      <textarea id="input" placeholder="请输入要加密/解密的文本"></textarea>
-    </div>
-
-    <div>
-      <h3>安全密码</h3>
-      <input type="password" id="password" placeholder="至少12位，包含大小写字母、数字和符号">
-    </div>
-
-    <div style="margin: 2rem 0; display: flex; gap: 1rem;">
-      <button onclick="handleEncrypt()" id="encryptBtn">加密</button>
-      <button onclick="handleDecrypt()" id="decryptBtn">解密</button>
-    </div>
-
-    <div>
-      <h3>输出结果</h3>
-      <textarea id="output" readonly></textarea>
-      <!-- 显示耗时 -->
-      <div id="timeTaken"></div>
-    </div>
-
-    <div class="security-info">
-      <p>🔒 安全特性：</p>
-      <ul>
-        <li>AES-256-GCM 认证加密</li>
-        <li>PBKDF2 60,000 次迭代</li>
-        <li>尝试次数限制 + 智能延迟</li>
-        <li>客户端本地处理（无网络传输）</li>
-      </ul>
-    </div>
+  <!-- 自定义光标 -->
+  <div id="target-cursor" class="target-cursor-wrapper">
+    <div id="cursor-dot" class="target-cursor-dot"></div>
+    <div class="target-cursor-corner corner-tl"></div>
+    <div class="target-cursor-corner corner-tr"></div>
+    <div class="target-cursor-corner corner-br"></div>
+    <div class="target-cursor-corner corner-bl"></div>
   </div>
+  <!-- 导航栏 -->
+  <nav class="navbar">
+    <div class="nav-brand">AES Tool</div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-tab="text">
+        <span data-i18n="nav_text">文本加密</span>
+      </button>
+      <button class="nav-tab" data-tab="file">
+        <span data-i18n="nav_file">文件加密</span>
+      </button>
+      <button class="nav-tab" data-tab="settings">
+        <span data-i18n="nav_settings">设置</span>
+      </button>
+    </div>
+    <div class="nav-actions">
+      <button id="theme-toggle" class="icon-btn" title="切换主题">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+      </button>
+      <select id="lang-select" class="lang-select">
+        <option value="zh">中文</option>
+        <option value="en">English</option>
+      </select>
+    </div>
+  </nav>
+
+  <!-- 主内容区 -->
+  <main class="main-content">
+    <!-- 文本加密面板 -->
+    <section class="tab-panel active" id="panel-text">
+      <div class="container">
+        <h1 data-i18n="text_title">🔐 安全加密工具 v3.1</h1>
+
+        <div id="alert" class="alert" style="display: none;"></div>
+        <div id="lockCountdown" class="alert" style="display: none;"></div>
+
+        <div>
+          <h3 data-i18n="text_label">输入文本</h3>
+          <textarea id="input" placeholder="请输入要加密/解密的文本"></textarea>
+        </div>
+
+        <div>
+          <h3 data-i18n="password_label">安全密码</h3>
+          <div class="password-input-wrapper">
+            <input type="password" id="password" placeholder="输入密码">
+            <div id="passwordIndicator" class="password-indicator"></div>
+          </div>
+          <div class="password-requirements">
+            <p data-i18n="password_requirements_title">密码要求：</p>
+            <ul>
+              <li data-i18n="password_req_length">至少12位字符</li>
+              <li data-i18n="password_req_uppercase">包含大写字母 (A-Z)</li>
+              <li data-i18n="password_req_lowercase">包含小写字母 (a-z)</li>
+              <li data-i18n="password_req_number">包含数字 (0-9)</li>
+              <li data-i18n="password_req_special">包含特殊字符 (!@#$%^&*)</li>
+            </ul>
+          </div>
+          <div id="passwordStrength" class="password-strength" style="display: none;">
+            <div class="strength-bar"></div>
+            <span class="strength-text">密码强度：弱</span>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button onclick="handleEncrypt()" id="encryptBtn" data-i18n="btn_encrypt">加密</button>
+          <button onclick="handleDecrypt()" id="decryptBtn" data-i18n="btn_decrypt">解密</button>
+        </div>
+
+        <div>
+          <h3 data-i18n="text_output">输出结果</h3>
+          <textarea id="output" readonly></textarea>
+          <div id="timeTaken"></div>
+        </div>
+
+        <div class="security-info">
+          <p data-i18n="security_title">🔒 安全特性：</p>
+          <ul>
+            <li data-i18n="security_feature1">AES-256-GCM 认证加密</li>
+            <li data-i18n="security_feature2">PBKDF2 60,000 次迭代</li>
+            <li data-i18n="security_feature3">尝试次数限制 + 智能延迟</li>
+            <li data-i18n="security_feature4">客户端本地处理（无网络传输）</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 文件加密面板 -->
+    <section class="tab-panel" id="panel-file">
+      <div class="container">
+        <h1 data-i18n="file_title">📁 文件加密</h1>
+
+        <div id="file-alert" class="alert" style="display: none;"></div>
+
+        <div class="file-drop-zone" id="drop-zone">
+          <input type="file" id="file-input" accept=".zip,.enc" hidden>
+          <p data-i18n="file_drop_hint">拖拽 .zip 文件到此处，或点击选择</p>
+          <button id="file-select-btn" class="btn-secondary" data-i18n="file_select">选择文件</button>
+        </div>
+
+        <div class="file-info" id="file-info" style="display: none;">
+          <span class="file-name" id="file-name"></span>
+          <span class="file-size" id="file-size"></span>
+          <button id="file-remove" class="icon-btn" title="移除文件">✕</button>
+        </div>
+
+        <div>
+          <h3 data-i18n="password_label">安全密码</h3>
+          <div class="password-input-wrapper">
+            <input type="password" id="file-password" placeholder="输入密码">
+            <div id="filePasswordIndicator" class="password-indicator"></div>
+          </div>
+          <div class="password-requirements">
+            <p data-i18n="password_requirements_title">密码要求：</p>
+            <ul>
+              <li data-i18n="password_req_length">至少12位字符</li>
+              <li data-i18n="password_req_uppercase">包含大写字母 (A-Z)</li>
+              <li data-i18n="password_req_lowercase">包含小写字母 (a-z)</li>
+              <li data-i18n="password_req_number">包含数字 (0-9)</li>
+              <li data-i18n="password_req_special">包含特殊字符 (!@#$%^&*)</li>
+            </ul>
+          </div>
+          <div id="filePasswordStrength" class="password-strength" style="display: none;">
+            <div class="strength-bar"></div>
+            <span class="strength-text">密码强度：弱</span>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button id="file-encrypt-btn" data-i18n="file_encrypt">加密文件</button>
+          <button id="file-decrypt-btn" data-i18n="file_decrypt">解密文件</button>
+        </div>
+
+        <div class="progress-bar" id="file-progress" style="display: none;">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+
+        <div class="security-info">
+          <p data-i18n="file_info_title">📁 文件加密说明：</p>
+          <ul>
+            <li data-i18n="file_info_feature1">仅支持 .zip 文件加密</li>
+            <li data-i18n="file_info_feature2">加密后生成 .enc 文件</li>
+            <li data-i18n="file_info_feature3">使用 AES-256-GCM 认证加密</li>
+            <li data-i18n="file_info_feature4">所有处理在本地完成</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 设置面板 -->
+    <section class="tab-panel" id="panel-settings">
+      <div class="settings-panel">
+        <h1 data-i18n="settings_title">⚙️ 设置</h1>
+
+        <!-- 背景图片设置 -->
+        <div class="settings-group">
+          <h3 data-i18n="settings_bg">背景图片</h3>
+          <div class="bg-preview" id="bg-preview"></div>
+          <input type="file" id="bg-input" accept="image/*" hidden>
+          <div class="btn-group">
+            <button id="bg-select-btn" class="btn-secondary" data-i18n="settings_bg_select">选择图片</button>
+            <button id="bg-clear-btn" class="btn-secondary" data-i18n="settings_bg_clear">清除背景</button>
+          </div>
+          <div class="bg-url-input">
+            <input type="url" id="bg-url-input" data-i18n-placeholder="bg_url_placeholder" placeholder="输入图片链接（如 https://example.com/image.jpg）">
+            <button id="bg-url-btn" class="btn-secondary" data-i18n="settings_bg_url">应用链接</button>
+          </div>
+        </div>
+
+        <!-- 主题设置 -->
+        <div class="settings-group">
+          <h3 data-i18n="settings_theme">主题</h3>
+          <div class="theme-options">
+            <button class="theme-btn" data-theme="light" data-i18n="theme_light">浅色</button>
+            <button class="theme-btn" data-theme="dark" data-i18n="theme_dark">深色</button>
+            <button class="theme-btn active" data-theme="system" data-i18n="theme_system">跟随系统</button>
+          </div>
+        </div>
+
+        <!-- 语言设置 -->
+        <div class="settings-group">
+          <h3 data-i18n="settings_lang">语言</h3>
+          <div class="lang-options">
+            <button class="lang-btn active" data-lang="zh" data-i18n="lang_zh">中文</button>
+            <button class="lang-btn" data-lang="en" data-i18n="lang_en">English</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
 
   <script>
-    // 安全配置参数（迭代次数 60,000 次）
-    const SECURITY_CONFIG = {
-      pbkdf2: {
-        name: "PBKDF2",
-        hash: "SHA-256",
-        iterations: 60000,
-        saltSize: 16
-      },
-      aes: {
-        name: "AES-GCM",
-        length: 256,
-        ivSize: 12,
-        tagSize: 16
-      },
-      attempts: {
-        max: 5,
-        lockTime: 5 * 60 * 1000,
-        delaySteps: [0, 5000, 10000, 30000, 300000]
+    // IIFE包装器
+    (function() {
+      'use strict';
+
+      // ========================================
+      // 1. 常量和配置
+      // ========================================
+      const STORAGE_KEYS = {
+        THEME: 'aes_tool_theme',
+        LANG: 'aes_tool_lang',
+        BG_IMAGE: 'aes_tool_bg_image',
+        LAST_TAB: 'aes_tool_last_tab'
+      };
+
+      const SECURITY_CONFIG = {
+        pbkdf2: {
+          name: "PBKDF2",
+          hash: "SHA-256",
+          iterations: 60000,
+          saltSize: 16
+        },
+        aes: {
+          name: "AES-GCM",
+          length: 256,
+          ivSize: 12,
+          tagSize: 16
+        },
+        attempts: {
+          max: 5,
+          lockTime: 5 * 60 * 1000,
+          delaySteps: [0, 5000, 10000, 30000, 300000]
+        }
+      };
+
+      // ========================================
+      // 2. 国际化（i18n）
+      // ========================================
+      const i18n = {
+        zh: {
+          nav_text: '文本加密',
+          nav_file: '文件加密',
+          nav_settings: '设置',
+          text_title: '🔐 安全加密工具 v3.1',
+          text_label: '输入文本',
+          text_output: '输出结果',
+          password_label: '安全密码',
+          btn_encrypt: '加密',
+          btn_decrypt: '解密',
+          security_title: '🔒 安全特性：',
+          security_feature1: 'AES-256-GCM 认证加密',
+          security_feature2: 'PBKDF2 60,000 次迭代',
+          security_feature3: '尝试次数限制 + 智能延迟',
+          security_feature4: '客户端本地处理（无网络传输）',
+          file_title: '📁 文件加密',
+          file_drop_hint: '拖拽 .zip 文件到此处，或点击选择',
+          file_select: '选择文件',
+          file_encrypt: '加密文件',
+          file_decrypt: '解密文件',
+          file_info_title: '📁 文件加密说明：',
+          file_info_feature1: '仅支持 .zip 文件加密',
+          file_info_feature2: '加密后生成 .enc 文件',
+          file_info_feature3: '使用 AES-256-GCM 认证加密',
+          file_info_feature4: '所有处理在本地完成',
+          settings_title: '⚙️ 设置',
+          settings_bg: '背景图片',
+          settings_bg_select: '选择图片',
+          settings_bg_clear: '清除背景',
+          settings_bg_url: '应用链接',
+          bg_invalid_url: '请输入有效的图片链接',
+          bg_url_success: '背景图片已更新',
+          bg_url_error: '无法加载该图片，请检查链接是否正确',
+          settings_theme: '主题',
+          settings_lang: '语言',
+          theme_light: '浅色',
+          theme_dark: '深色',
+          theme_system: '跟随系统',
+          lang_zh: '中文',
+          lang_en: 'English',
+          password_placeholder: '至少12位，包含大小写字母、数字和符号',
+          password_requirements_title: '密码要求：',
+          password_req_length: '至少12位字符',
+          password_req_uppercase: '包含大写字母 (A-Z)',
+          password_req_lowercase: '包含小写字母 (a-z)',
+          password_req_number: '包含数字 (0-9)',
+          password_req_special: '包含特殊字符 (!@#$%^&*)',
+          file_password_placeholder: '输入密码',
+          file_encrypting: '加密中...',
+          file_decrypting: '解密中...',
+          file_complete: '操作完成',
+          file_invalid: '请选择 .zip 或 .enc 文件',
+          file_invalid_zip: '请选择 .zip 文件进行加密',
+          file_invalid_enc: '请选择 .enc 文件进行解密',
+          file_too_large: '文件过大，请注意内存使用',
+          file_error: '文件处理错误',
+          file_select_error: '请选择文件',
+          file_password_error: '请输入密码',
+          file_format_error: '文件格式错误',
+          file_auth_error: '认证失败 - 密码错误或文件被篡改',
+          bg_too_large: '图片过大（最大2MB）',
+          bg_store_error: '存储空间不足',
+          bg_url_placeholder: '输入图片链接（如 https://example.com/image.jpg）',
+          strength_weak: '密码强度：弱',
+          strength_fair: '密码强度：较弱',
+          strength_good: '密码强度：中等',
+          strength_strong: '密码强度：较强',
+          strength_very_strong: '密码强度：强',
+          lock_message: '系统已锁定，请等待 {seconds} 秒后重试',
+          lock_title: '安全警告',
+          lock_attempts: '尝试次数过多，系统已锁定 {minutes} 分钟。请稍后再试。',
+          error_password: '密码不符合安全要求',
+          error_attempts: '操作失败：密码错误或数据被篡改。剩余尝试次数: {remaining}',
+          time_encrypt: '加密完成用时：{time}',
+          time_decrypt: '解密完成用时：{time}',
+          time_hour: '小时',
+          time_minute: '分钟',
+          time_second: '秒',
+          error_pwd_length: '至少12位字符',
+          error_pwd_uppercase: '需要包含大写字母',
+          error_pwd_lowercase: '需要包含小写字母',
+          error_pwd_number: '需要包含数字',
+          error_pwd_special: '需要包含特殊字符'
+        },
+        en: {
+          nav_text: 'Text Encryption',
+          nav_file: 'File Encryption',
+          nav_settings: 'Settings',
+          text_title: '🔐 Secure AES-256 Tool v3.1',
+          text_label: 'Input Text',
+          text_output: 'Output',
+          password_label: 'Password',
+          btn_encrypt: 'Encrypt',
+          btn_decrypt: 'Decrypt',
+          security_title: '🔒 Security Features:',
+          security_feature1: 'AES-256-GCM Authenticated Encryption',
+          security_feature2: 'PBKDF2 60,000 Iterations',
+          security_feature3: 'Attempt Limits + Smart Delay',
+          security_feature4: 'Client-side Processing (No Network)',
+          file_title: '📁 File Encryption',
+          file_drop_hint: 'Drop .zip file here or click to select',
+          file_select: 'Select File',
+          file_encrypt: 'Encrypt File',
+          file_decrypt: 'Decrypt File',
+          file_info_title: '📁 File Encryption Info:',
+          file_info_feature1: 'Only .zip files supported',
+          file_info_feature2: 'Creates .enc encrypted files',
+          file_info_feature3: 'AES-256-GCM Authenticated Encryption',
+          file_info_feature4: 'All processing done locally',
+          settings_title: '⚙️ Settings',
+          settings_bg: 'Background Image',
+          settings_bg_select: 'Select Image',
+          settings_bg_clear: 'Clear Background',
+          settings_bg_url: 'Apply URL',
+          bg_invalid_url: 'Please enter a valid image URL',
+          bg_url_success: 'Background image updated',
+          bg_url_error: 'Cannot load image, please check the URL',
+          settings_theme: 'Theme',
+          settings_lang: 'Language',
+          theme_light: 'Light',
+          theme_dark: 'Dark',
+          theme_system: 'System',
+          lang_zh: '中文',
+          lang_en: 'English',
+          password_placeholder: 'Min 12 chars with uppercase, lowercase, numbers, symbols',
+          password_requirements_title: 'Password Requirements:',
+          password_req_length: 'At least 12 characters',
+          password_req_uppercase: 'Contains uppercase letters (A-Z)',
+          password_req_lowercase: 'Contains lowercase letters (a-z)',
+          password_req_number: 'Contains numbers (0-9)',
+          password_req_special: 'Contains special characters (!@#$%^&*)',
+          file_password_placeholder: 'Enter password',
+          file_encrypting: 'Encrypting...',
+          file_decrypting: 'Decrypting...',
+          file_complete: 'Operation complete',
+          file_invalid: 'Please select .zip or .enc file',
+          file_invalid_zip: 'Please select .zip file for encryption',
+          file_invalid_enc: 'Please select .enc file for decryption',
+          file_too_large: 'File too large, watch memory usage',
+          file_error: 'File processing error',
+          file_select_error: 'Please select a file',
+          file_password_error: 'Please enter a password',
+          file_format_error: 'Invalid file format',
+          file_auth_error: 'Authentication failed - wrong password or file corrupted',
+          bg_too_large: 'Image too large (max 2MB)',
+          bg_store_error: 'Storage space insufficient',
+          bg_url_placeholder: 'Enter image URL (e.g. https://example.com/image.jpg)',
+          strength_weak: 'Password Strength: Weak',
+          strength_fair: 'Password Strength: Fair',
+          strength_good: 'Password Strength: Good',
+          strength_strong: 'Password Strength: Strong',
+          strength_very_strong: 'Password Strength: Very Strong',
+          lock_message: 'System locked. Please wait {seconds} seconds.',
+          lock_title: 'Security Warning',
+          lock_attempts: 'Too many attempts. System locked for {minutes} minutes.',
+          error_password: 'Password does not meet security requirements',
+          error_attempts: 'Operation failed: Wrong password or data tampered. Remaining attempts: {remaining}',
+          time_encrypt: 'Encryption completed in: {time}',
+          time_decrypt: 'Decryption completed in: {time}',
+          time_hour: 'h',
+          time_minute: 'm',
+          time_second: 's',
+          error_pwd_length: 'At least 12 characters',
+          error_pwd_uppercase: 'Must contain uppercase letters',
+          error_pwd_lowercase: 'Must contain lowercase letters',
+          error_pwd_number: 'Must contain numbers',
+          error_pwd_special: 'Must contain special characters'
+        }
+      };
+
+      let currentLang = localStorage.getItem(STORAGE_KEYS.LANG) || 'zh';
+
+      function t(key, params = {}) {
+        let text = i18n[currentLang][key] || i18n['zh'][key] || key;
+        Object.keys(params).forEach(param => {
+          text = text.replace(`{${param}}`, params[param]);
+        });
+        return text;
       }
-    };
 
-    // 状态管理
-    let security = {
-      attempts: 0,
-      locked: false,
-      timer: null
-    };
+      function setLanguage(lang) {
+        currentLang = lang;
+        localStorage.setItem(STORAGE_KEYS.LANG, lang);
 
-    const timeTakenEl = document.getElementById("timeTaken");
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+          const key = el.dataset.i18n;
+          if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+            el.placeholder = t(key);
+          } else {
+            el.textContent = t(key);
+          }
+        });
 
-    // 主加密函数：利用 Web Crypto API 执行 AES-256-GCM 加密
-    async function encrypt(text, password) {
-      const salt = crypto.getRandomValues(new Uint8Array(SECURITY_CONFIG.pbkdf2.saltSize));
-      const iv = crypto.getRandomValues(new Uint8Array(SECURITY_CONFIG.aes.ivSize));
-      const baseKey = await crypto.subtle.importKey(
-        "raw",
-        new TextEncoder().encode(password),
-        "PBKDF2",
-        false,
-        ["deriveKey"]
-      );
-      const key = await crypto.subtle.deriveKey(
-        {
-          ...SECURITY_CONFIG.pbkdf2,
-          salt: salt
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+          const key = el.dataset.i18nPlaceholder;
+          el.placeholder = t(key);
+        });
+
+        // 更新密码输入框占位符
+        document.getElementById('password').placeholder = t('password_placeholder');
+        document.getElementById('file-password').placeholder = t('file_password_placeholder');
+        document.getElementById('bg-url-input').placeholder = t('bg_url_placeholder');
+
+        // 更新语言选择按钮状态
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.lang === lang);
+        });
+
+        // 更新下拉选择框
+        document.getElementById('lang-select').value = lang;
+
+        // 更新页面标题
+        document.documentElement.lang = lang === 'zh' ? 'zh' : 'en';
+      }
+
+      // ========================================
+      // 3. 主题管理
+      // ========================================
+      const ThemeManager = {
+        currentTheme: 'system',
+        mediaQuery: window.matchMedia('(prefers-color-scheme: dark)'),
+
+        init() {
+          this.currentTheme = localStorage.getItem(STORAGE_KEYS.THEME) || 'system';
+          this.apply();
+
+          this.mediaQuery.addEventListener('change', () => {
+            if (this.currentTheme === 'system') {
+              this.apply();
+            }
+          });
+
+          // 绑定主题按钮事件
+          document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+              this.setTheme(btn.dataset.theme);
+            });
+          });
+
+          // 绑定导航栏主题切换按钮
+          document.getElementById('theme-toggle').addEventListener('click', () => {
+            const themes = ['light', 'dark', 'system'];
+            const currentIndex = themes.indexOf(this.currentTheme);
+            const nextIndex = (currentIndex + 1) % themes.length;
+            this.setTheme(themes[nextIndex]);
+          });
         },
-        baseKey,
-        SECURITY_CONFIG.aes,
-        false,
-        ["encrypt", "decrypt"]
-      );
-      const encrypted = await crypto.subtle.encrypt(
-        {
-          ...SECURITY_CONFIG.aes,
-          iv: iv
-        },
-        key,
-        new TextEncoder().encode(text)
-      );
-      const combined = new Uint8Array([
-        ...salt,
-        ...iv,
-        ...new Uint8Array(encrypted)
-      ]);
-      return btoa(String.fromCharCode(...combined));
-    }
 
-    // 主解密函数：利用 Web Crypto API 解密数据
-    async function decrypt(data, password) {
-      const raw = Uint8Array.from(atob(data), c => c.charCodeAt(0));
-      const salt = raw.slice(0, SECURITY_CONFIG.pbkdf2.saltSize);
-      const iv = raw.slice(
-        SECURITY_CONFIG.pbkdf2.saltSize,
-        SECURITY_CONFIG.pbkdf2.saltSize + SECURITY_CONFIG.aes.ivSize
-      );
-      const ciphertext = raw.slice(SECURITY_CONFIG.pbkdf2.saltSize + SECURITY_CONFIG.aes.ivSize);
-      const baseKey = await crypto.subtle.importKey(
-        "raw",
-        new TextEncoder().encode(password),
-        "PBKDF2",
-        false,
-        ["deriveKey"]
-      );
-      const key = await crypto.subtle.deriveKey(
-        {
-          ...SECURITY_CONFIG.pbkdf2,
-          salt: salt
+        apply() {
+          let effectiveTheme = this.currentTheme;
+          if (effectiveTheme === 'system') {
+            effectiveTheme = this.mediaQuery.matches ? 'dark' : 'light';
+          }
+
+          document.documentElement.dataset.theme = effectiveTheme;
+
+          // 更新按钮状态
+          document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.theme === this.currentTheme);
+          });
+
+          // 更新图标
+          this.updateIcon();
         },
-        baseKey,
-        SECURITY_CONFIG.aes,
-        false,
-        ["encrypt", "decrypt"]
-      );
-      try {
-        const decrypted = await crypto.subtle.decrypt(
+
+        updateIcon() {
+          const btn = document.getElementById('theme-toggle');
+          const isDark = document.documentElement.dataset.theme === 'dark';
+          btn.innerHTML = isDark ?
+            '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>' :
+            '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>';
+        },
+
+        setTheme(theme) {
+          this.currentTheme = theme;
+          localStorage.setItem(STORAGE_KEYS.THEME, theme);
+          this.apply();
+        }
+      };
+
+      // ========================================
+      // 4. 背景图片管理
+      // ========================================
+      const BgManager = {
+        init() {
+          const savedBg = localStorage.getItem(STORAGE_KEYS.BG_IMAGE);
+          if (savedBg) {
+            this.apply(savedBg);
+          }
+
+          document.getElementById('bg-select-btn').addEventListener('click', () => {
+            document.getElementById('bg-input').click();
+          });
+
+          document.getElementById('bg-input').addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+              this.selectImage(e.target.files[0]);
+            }
+          });
+
+          document.getElementById('bg-clear-btn').addEventListener('click', () => {
+            this.clearImage();
+          });
+
+          // URL输入框事件绑定
+          document.getElementById('bg-url-btn').addEventListener('click', () => {
+            const urlInput = document.getElementById('bg-url-input');
+            const url = urlInput.value.trim();
+            if (url) {
+              this.applyUrl(url);
+            }
+          });
+
+          // 回车键也可以提交
+          document.getElementById('bg-url-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+              const url = e.target.value.trim();
+              if (url) {
+                this.applyUrl(url);
+              }
+            }
+          });
+        },
+
+        selectImage(file) {
+          if (!file.type.startsWith('image/')) {
+            showAlert(t('bg_too_large'), 'danger');
+            return;
+          }
+
+          if (file.size > 2 * 1024 * 1024) {
+            showAlert(t('bg_too_large'), 'danger');
+            return;
+          }
+
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const dataUrl = e.target.result;
+            try {
+              localStorage.setItem(STORAGE_KEYS.BG_IMAGE, dataUrl);
+              this.apply(dataUrl);
+            } catch (err) {
+              showAlert(t('bg_store_error'), 'danger');
+            }
+          };
+          reader.readAsDataURL(file);
+        },
+
+        applyUrl(url) {
+          // 验证URL格式
+          try {
+            new URL(url);
+          } catch (e) {
+            showAlert(t('bg_invalid_url'), 'danger');
+            return;
+          }
+
+          // 测试图片是否可以加载
+          const img = new Image();
+          img.onload = () => {
+            try {
+              localStorage.setItem(STORAGE_KEYS.BG_IMAGE, url);
+              this.apply(url);
+              document.getElementById('bg-url-input').value = '';
+              showAlert(t('bg_url_success'), 'success');
+            } catch (err) {
+              showAlert(t('bg_store_error'), 'danger');
+            }
+          };
+          img.onerror = () => {
+            showAlert(t('bg_url_error'), 'danger');
+          };
+          img.src = url;
+        },
+
+        apply(dataUrl) {
+          document.body.style.backgroundImage = `url(${dataUrl})`;
+          document.body.classList.add('has-bg');
+
+          const preview = document.getElementById('bg-preview');
+          if (preview) {
+            preview.style.backgroundImage = `url(${dataUrl})`;
+          }
+        },
+
+        clearImage() {
+          localStorage.removeItem(STORAGE_KEYS.BG_IMAGE);
+          document.body.style.backgroundImage = '';
+          document.body.classList.remove('has-bg');
+
+          const preview = document.getElementById('bg-preview');
+          if (preview) {
+            preview.style.backgroundImage = '';
+          }
+        }
+      };
+
+      // ========================================
+      // 5. 标签页导航
+      // ========================================
+      const TabNav = {
+        init() {
+          document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+              this.switchTo(tab.dataset.tab);
+            });
+          });
+
+          const lastTab = localStorage.getItem(STORAGE_KEYS.LAST_TAB) || 'text';
+          this.switchTo(lastTab);
+        },
+
+        switchTo(tabId) {
+          document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.tab === tabId);
+          });
+
+          document.querySelectorAll('.tab-panel').forEach(panel => {
+            panel.classList.toggle('active', panel.id === 'panel-' + tabId);
+          });
+
+          localStorage.setItem(STORAGE_KEYS.LAST_TAB, tabId);
+        }
+      };
+
+      // ========================================
+      // 6. 文本加密（现有功能）
+      // ========================================
+      let security = {
+        attempts: 0,
+        locked: false,
+        timer: null
+      };
+
+      const timeTakenEl = document.getElementById("timeTaken");
+
+      async function encrypt(text, password) {
+        const salt = crypto.getRandomValues(new Uint8Array(SECURITY_CONFIG.pbkdf2.saltSize));
+        const iv = crypto.getRandomValues(new Uint8Array(SECURITY_CONFIG.aes.ivSize));
+        const baseKey = await crypto.subtle.importKey(
+          "raw",
+          new TextEncoder().encode(password),
+          "PBKDF2",
+          false,
+          ["deriveKey"]
+        );
+        const key = await crypto.subtle.deriveKey(
+          {
+            ...SECURITY_CONFIG.pbkdf2,
+            salt: salt
+          },
+          baseKey,
+          SECURITY_CONFIG.aes,
+          false,
+          ["encrypt", "decrypt"]
+        );
+        const encrypted = await crypto.subtle.encrypt(
           {
             ...SECURITY_CONFIG.aes,
             iv: iv
           },
           key,
-          ciphertext
+          new TextEncoder().encode(text)
         );
-        return new TextDecoder().decode(decrypted);
-      } catch (e) {
-        if (e.name === "OperationError") {
-          throw new Error("认证失败 - 数据可能被篡改");
+        const combined = new Uint8Array([
+          ...salt,
+          ...iv,
+          ...new Uint8Array(encrypted)
+        ]);
+        return btoa(String.fromCharCode(...combined));
+      }
+
+      async function decrypt(data, password) {
+        const raw = Uint8Array.from(atob(data), c => c.charCodeAt(0));
+        const salt = raw.slice(0, SECURITY_CONFIG.pbkdf2.saltSize);
+        const iv = raw.slice(
+          SECURITY_CONFIG.pbkdf2.saltSize,
+          SECURITY_CONFIG.pbkdf2.saltSize + SECURITY_CONFIG.aes.ivSize
+        );
+        const ciphertext = raw.slice(SECURITY_CONFIG.pbkdf2.saltSize + SECURITY_CONFIG.aes.ivSize);
+        const baseKey = await crypto.subtle.importKey(
+          "raw",
+          new TextEncoder().encode(password),
+          "PBKDF2",
+          false,
+          ["deriveKey"]
+        );
+        const key = await crypto.subtle.deriveKey(
+          {
+            ...SECURITY_CONFIG.pbkdf2,
+            salt: salt
+          },
+          baseKey,
+          SECURITY_CONFIG.aes,
+          false,
+          ["encrypt", "decrypt"]
+        );
+        try {
+          const decrypted = await crypto.subtle.decrypt(
+            {
+              ...SECURITY_CONFIG.aes,
+              iv: iv
+            },
+            key,
+            ciphertext
+          );
+          return new TextDecoder().decode(decrypted);
+        } catch (e) {
+          if (e.name === "OperationError") {
+            throw new Error(t('file_auth_error'));
+          }
+          throw e;
         }
-        throw e;
       }
-    }
 
-    // 安全控制器：包装加密/解密操作并应用延迟
-    async function withSecurity(fn) {
-      if (security.locked) {
-        showAlert("系统已锁定，请稍后再试", "danger");
-        return;
-      }
-      const delay = SECURITY_CONFIG.attempts.delaySteps[security.attempts] || 300000;
-      await new Promise(resolve => setTimeout(resolve, delay));
-      try {
-        return await fn();
-      } catch (error) {
-        handleSecurityError(error);
-        throw error;
-      }
-    }
-
-    // 启动系统锁定倒计时显示
-    function startLockCountdown(lockDuration) {
-      const countdownEl = document.getElementById("lockCountdown");
-      countdownEl.style.display = "block";
-      let remaining = lockDuration;
-      const interval = setInterval(() => {
-        remaining -= 1000;
-        if (remaining <= 0) {
-          clearInterval(interval);
-          countdownEl.style.display = "none";
-          countdownEl.textContent = "";
-          security.locked = false;
+      async function withSecurity(fn) {
+        if (security.locked) {
+          showAlert(t('lock_message', { seconds: Math.ceil(security.lockTime / 1000) }), "danger");
+          return;
+        }
+        // 只有在之前有失败尝试时才应用延迟
+        if (security.attempts > 0) {
+          const delay = SECURITY_CONFIG.attempts.delaySteps[security.attempts] || 300000;
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+        try {
+          const result = await fn();
+          // 操作成功，重置尝试次数
           security.attempts = 0;
-          showAlert("系统已解锁，请继续操作", "success");
+          return result;
+        } catch (error) {
+          // 只有在真正的加密/解密操作失败时才增加尝试次数
+          if (error.name === 'OperationError' || error.message.includes('认证失败')) {
+            handleSecurityError(error);
+          }
+          throw error;
+        }
+      }
+
+      function startLockCountdown(lockDuration) {
+        const countdownEl = document.getElementById("lockCountdown");
+        countdownEl.style.display = "block";
+        let remaining = lockDuration;
+        const interval = setInterval(() => {
+          remaining -= 1000;
+          if (remaining <= 0) {
+            clearInterval(interval);
+            countdownEl.style.display = "none";
+            countdownEl.textContent = "";
+            security.locked = false;
+            security.attempts = 0;
+            showAlert(t('file_complete'), "success");
+          } else {
+            const seconds = Math.floor(remaining / 1000);
+            countdownEl.textContent = t('lock_message', { seconds });
+          }
+        }, 1000);
+      }
+
+      function handleSecurityError(error) {
+        security.attempts++;
+        if (security.attempts >= SECURITY_CONFIG.attempts.max) {
+          security.locked = true;
+          const lockDuration = SECURITY_CONFIG.attempts.lockTime;
+          security.lockTime = lockDuration;
+          startLockCountdown(lockDuration);
+          showAlert(`<strong>${t('lock_title')}</strong>：${t('lock_attempts', { minutes: lockDuration/60000 })}`, "danger");
+          security.timer = setTimeout(() => {
+            security.locked = false;
+            security.attempts = 0;
+          }, lockDuration);
+          localStorage.setItem('securityState', JSON.stringify({
+            attempts: security.attempts,
+            lockTime: Date.now() + lockDuration,
+            timestamp: Date.now()
+          }));
         } else {
-          const seconds = Math.floor(remaining / 1000);
-          countdownEl.textContent = `系统已锁定，请等待 ${seconds} 秒后重试`;
+          const remaining = SECURITY_CONFIG.attempts.max - security.attempts;
+          showAlert(`<strong>${t('lock_title')}</strong>：${t('error_attempts', { remaining })}`, "danger");
+          localStorage.setItem('securityState', JSON.stringify({
+            attempts: security.attempts,
+            lockTime: Date.now() + SECURITY_CONFIG.attempts.lockTime,
+            timestamp: Date.now()
+          }));
         }
-      }, 1000);
-    }
+      }
 
-    // 错误处理：记录失败尝试并在达到上限后锁定系统
-    function handleSecurityError(error) {
-      security.attempts++;
-      if (security.attempts >= SECURITY_CONFIG.attempts.max) {
-        security.locked = true;
-        const lockDuration = SECURITY_CONFIG.attempts.lockTime;
-        startLockCountdown(lockDuration);
-        showAlert(`尝试次数过多，系统已锁定 ${lockDuration/60000} 分钟`, "danger");
-        security.timer = setTimeout(() => {
-          security.locked = false;
-          security.attempts = 0;
-        }, lockDuration);
-        localStorage.setItem('securityState', JSON.stringify({
-          attempts: security.attempts,
-          lockTime: Date.now() + lockDuration
-        }));
-      } else {
-        showAlert(`操作失败 (剩余尝试次数: ${SECURITY_CONFIG.attempts.max - security.attempts})`, "danger");
-        localStorage.setItem('securityState', JSON.stringify({
-          attempts: security.attempts,
-          lockTime: Date.now() + SECURITY_CONFIG.attempts.lockTime
-        }));
-      }
-    }
+      function showAlert(message, type = "danger") {
+        const alertEl = document.getElementById("alert");
+        alertEl.style.display = "block";
+        alertEl.className = `alert alert-${type}`;
+        alertEl.innerHTML = message;
 
-    // UI 提示信息控制函数
-    function showAlert(message, type = "danger") {
-      const alertEl = document.getElementById("alert");
-      alertEl.style.display = "block";
-      alertEl.className = `alert alert-${type}`;
-      alertEl.textContent = message;
-    }
+        if (type === "success") {
+          setTimeout(() => {
+            alertEl.style.display = "none";
+          }, 5000);
+        }
+      }
 
-    // 密码验证：检查密码是否满足复杂性要求，并返回不满足的项
-    function validatePasswordDetailed(pwd) {
-      const errors = [];
-      if (pwd.length < 12) {
-        errors.push("长度至少12位");
+      function validatePasswordDetailed(pwd) {
+        const errors = [];
+        if (pwd.length < 12) {
+          errors.push(t('error_pwd_length'));
+        }
+        if (!/[A-Z]/.test(pwd)) {
+          errors.push(t('error_pwd_uppercase'));
+        }
+        if (!/[a-z]/.test(pwd)) {
+          errors.push(t('error_pwd_lowercase'));
+        }
+        if (!/[0-9]/.test(pwd)) {
+          errors.push(t('error_pwd_number'));
+        }
+        if (!/[\W_]/.test(pwd)) {
+          errors.push(t('error_pwd_special'));
+        }
+        return errors;
       }
-      if (!/[A-Z]/.test(pwd)) {
-        errors.push("需要包含大写字母");
-      }
-      if (!/[a-z]/.test(pwd)) {
-        errors.push("需要包含小写字母");
-      }
-      if (!/[0-9]/.test(pwd)) {
-        errors.push("需要包含数字");
-      }
-      if (!/[\W_]/.test(pwd)) {
-        errors.push("需要包含特殊字符");
-      }
-      return errors;
-    }
 
-    // 将毫秒转换为几小时几分钟几秒的格式
-    function formatElapsedTime(ms) {
-      const totalSeconds = Math.floor(ms / 1000);
-      const hours = Math.floor(totalSeconds / 3600);
-      const minutes = Math.floor((totalSeconds % 3600) / 60);
-      const seconds = totalSeconds % 60;
-      return `${hours}小时${minutes}分钟${seconds}秒`;
-    }
+      function updatePasswordStrength(password) {
+        const strengthBar = document.querySelector('#passwordStrength .strength-bar');
+        const strengthText = document.querySelector('#passwordStrength .strength-text');
+        const strengthContainer = document.getElementById('passwordStrength');
+        const indicator = document.getElementById('passwordIndicator');
 
-    // 事件处理：加密操作，添加按钮反馈、耗时显示及禁用输入、输出区域也禁用
-    async function handleEncrypt() {
-      const encryptBtn = document.getElementById("encryptBtn");
-      const decryptBtn = document.getElementById("decryptBtn");
-      const inputField = document.getElementById("input");
-      const passwordField = document.getElementById("password");
-      const outputField = document.getElementById("output");
-      // 禁用所有交互控件
-      encryptBtn.disabled = true;
-      decryptBtn.disabled = true;
-      inputField.disabled = true;
-      passwordField.disabled = true;
-      outputField.disabled = true;
-      encryptBtn.textContent = "加密中...";
-      // 添加闪烁动画效果
-      encryptBtn.classList.add("processing");
-      const startTime = Date.now();
-      try {
-        await withSecurity(async () => {
-          const text = inputField.value;
-          const password = passwordField.value;
-          const errors = validatePasswordDetailed(password);
-          if (errors.length > 0) {
-            showAlert("密码不符合要求：" + errors.join("，"), "danger");
+        // 获取密码要求列表项
+        const requirements = document.querySelectorAll('#panel-text .password-requirements li');
+
+        if (!password) {
+          strengthContainer.style.display = 'none';
+          indicator.classList.remove('valid');
+          // 重置所有要求项的样式
+          requirements.forEach(req => req.classList.remove('met'));
+          return;
+        }
+
+        strengthContainer.style.display = 'block';
+
+        let score = 0;
+        const checks = [
+          password.length >= 12,
+          /[A-Z]/.test(password),
+          /[a-z]/.test(password),
+          /[0-9]/.test(password),
+          /[\W_]/.test(password)
+        ];
+
+        checks.forEach((check, index) => {
+          if (check) score++;
+          if (requirements[index]) {
+            if (check) {
+              requirements[index].classList.add('met');
+            } else {
+              requirements[index].classList.remove('met');
+            }
+          }
+        });
+
+        const strengthKeys = ['strength_weak', 'strength_fair', 'strength_good', 'strength_strong', 'strength_very_strong'];
+        const strengthColors = ['#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#27ae60'];
+
+        const strengthKey = strengthKeys[score - 1] || 'strength_weak';
+        const color = strengthColors[score - 1] || '#e74c3c';
+
+        strengthText.textContent = t(strengthKey);
+        strengthText.style.color = color;
+        strengthBar.style.width = `${score * 20}%`;
+        strengthBar.style.backgroundColor = color;
+
+        // 更新密码指示灯：所有标准都符合时显示青色
+        if (score === 5) {
+          indicator.classList.add('valid');
+        } else {
+          indicator.classList.remove('valid');
+        }
+      }
+
+      function formatElapsedTime(ms) {
+        const totalSeconds = Math.floor(ms / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        return `${hours}${t('time_hour')}${minutes}${t('time_minute')}${seconds}${t('time_second')}`;
+      }
+
+      async function handleEncrypt() {
+        const encryptBtn = document.getElementById("encryptBtn");
+        const decryptBtn = document.getElementById("decryptBtn");
+        const inputField = document.getElementById("input");
+        const passwordField = document.getElementById("password");
+        const outputField = document.getElementById("output");
+
+        // 先验证密码，不经过 withSecurity（避免验证错误被计入安全失败）
+        const password = passwordField.value;
+        const errors = validatePasswordDetailed(password);
+        if (errors.length > 0) {
+          showAlert(`<strong>${t('error_password')}</strong>：<br>• ${errors.join("<br>• ")}`, "danger");
+          return;
+        }
+
+        encryptBtn.disabled = true;
+        decryptBtn.disabled = true;
+        inputField.disabled = true;
+        passwordField.disabled = true;
+        outputField.disabled = true;
+        encryptBtn.textContent = t('file_encrypting');
+        encryptBtn.classList.add("processing");
+        const startTime = Date.now();
+
+        try {
+          await withSecurity(async () => {
+            const text = inputField.value;
+            const result = await encrypt(text, password);
+            outputField.value = result;
+          });
+        } catch (error) {
+          // 错误已通过showAlert显示
+        } finally {
+          const elapsed = Date.now() - startTime;
+          timeTakenEl.textContent = t('time_encrypt', { time: formatElapsedTime(elapsed) });
+          encryptBtn.disabled = false;
+          decryptBtn.disabled = false;
+          inputField.disabled = false;
+          passwordField.disabled = false;
+          outputField.disabled = false;
+          encryptBtn.textContent = t('btn_encrypt');
+          decryptBtn.textContent = t('btn_decrypt');
+          encryptBtn.classList.remove("processing");
+        }
+      }
+
+      async function handleDecrypt() {
+        const encryptBtn = document.getElementById("encryptBtn");
+        const decryptBtn = document.getElementById("decryptBtn");
+        const inputField = document.getElementById("input");
+        const passwordField = document.getElementById("password");
+        const outputField = document.getElementById("output");
+
+        // 先验证密码，不经过 withSecurity
+        const password = passwordField.value;
+        const errors = validatePasswordDetailed(password);
+        if (errors.length > 0) {
+          showAlert(`<strong>${t('error_password')}</strong>：<br>• ${errors.join("<br>• ")}`, "danger");
+          return;
+        }
+
+        encryptBtn.disabled = true;
+        decryptBtn.disabled = true;
+        inputField.disabled = true;
+        passwordField.disabled = true;
+        outputField.disabled = true;
+        decryptBtn.textContent = t('file_decrypting');
+        decryptBtn.classList.add("processing");
+        const startTime = Date.now();
+
+        try {
+          await withSecurity(async () => {
+            const data = inputField.value;
+            const result = await decrypt(data, password);
+            outputField.value = result;
+          });
+        } catch (error) {
+          // 错误已通过showAlert显示
+        } finally {
+          const elapsed = Date.now() - startTime;
+          timeTakenEl.textContent = t('time_decrypt', { time: formatElapsedTime(elapsed) });
+          encryptBtn.disabled = false;
+          decryptBtn.disabled = false;
+          inputField.disabled = false;
+          passwordField.disabled = false;
+          outputField.disabled = false;
+          encryptBtn.textContent = t('btn_encrypt');
+          decryptBtn.textContent = t('btn_decrypt');
+          decryptBtn.classList.remove("processing");
+        }
+      }
+
+      // ========================================
+      // 7. 文件加密
+      // ========================================
+      const FileCrypto = {
+        currentFile: null,
+
+        init() {
+          const dropZone = document.getElementById('drop-zone');
+          const fileInput = document.getElementById('file-input');
+
+          dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+          });
+
+          dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+          });
+
+          dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            if (e.dataTransfer.files.length > 0) {
+              this.handleFileSelect(e.dataTransfer.files[0]);
+            }
+          });
+
+          // 点击 drop zone 任意区域都能选择文件
+          dropZone.addEventListener('click', (e) => {
+            if (e.target.id !== 'file-input') {
+              fileInput.click();
+            }
+          });
+
+          fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+              this.handleFileSelect(e.target.files[0]);
+            }
+          });
+
+          document.getElementById('file-remove').addEventListener('click', () => {
+            this.removeFile();
+          });
+
+          document.getElementById('file-encrypt-btn').addEventListener('click', () => {
+            this.encryptFile();
+          });
+
+          document.getElementById('file-decrypt-btn').addEventListener('click', () => {
+            this.decryptFile();
+          });
+
+          // 文件密码输入框事件绑定
+          document.getElementById('file-password').addEventListener('input', (e) => {
+            this.updateFilePasswordStrength(e.target.value);
+          });
+        },
+
+        handleFileSelect(file, operation = 'auto') {
+          const fileName = file.name.toLowerCase();
+          let isValid = false;
+
+          if (operation === 'encrypt') {
+            // 加密时只接受 .zip 文件
+            isValid = fileName.endsWith('.zip');
+          } else if (operation === 'decrypt') {
+            // 解密时只接受 .enc 文件
+            isValid = fileName.endsWith('.enc');
+          } else {
+            // 自动模式：接受 .zip 或 .enc 文件
+            isValid = fileName.endsWith('.zip') || fileName.endsWith('.enc');
+          }
+
+          if (!isValid) {
+            if (operation === 'encrypt') {
+              this.showFileAlert(t('file_invalid_zip'), 'danger');
+            } else if (operation === 'decrypt') {
+              this.showFileAlert(t('file_invalid_enc'), 'danger');
+            } else {
+              this.showFileAlert(t('file_invalid'), 'danger');
+            }
             return;
           }
-          const result = await encrypt(text, password);
-          outputField.value = result;
-          security.attempts = 0;
-        });
-      } finally {
-        const elapsed = Date.now() - startTime;
-        timeTakenEl.textContent = `加密完成用时：${formatElapsedTime(elapsed)}`;
-        // 恢复所有控件
-        encryptBtn.disabled = false;
-        decryptBtn.disabled = false;
-        inputField.disabled = false;
-        passwordField.disabled = false;
-        outputField.disabled = false;
-        encryptBtn.textContent = "加密";
-        decryptBtn.textContent = "解密";
-        // 移除闪烁动画效果
-        encryptBtn.classList.remove("processing");
-      }
-    }
 
-    // 事件处理：解密操作，添加按钮反馈、耗时显示及禁用输入、输出区域也禁用
-    async function handleDecrypt() {
-      const encryptBtn = document.getElementById("encryptBtn");
-      const decryptBtn = document.getElementById("decryptBtn");
-      const inputField = document.getElementById("input");
-      const passwordField = document.getElementById("password");
-      const outputField = document.getElementById("output");
-      // 禁用所有交互控件
-      encryptBtn.disabled = true;
-      decryptBtn.disabled = true;
-      inputField.disabled = true;
-      passwordField.disabled = true;
-      outputField.disabled = true;
-      decryptBtn.textContent = "解密中...";
-      // 添加闪烁动画效果
-      decryptBtn.classList.add("processing");
-      const startTime = Date.now();
-      try {
-        await withSecurity(async () => {
-          const data = inputField.value;
-          const password = passwordField.value;
-          const errors = validatePasswordDetailed(password);
-          if (errors.length > 0) {
-            showAlert("密码不符合要求：" + errors.join("，"), "danger");
+          this.currentFile = file;
+          this.currentOperation = operation;
+          document.getElementById('file-name').textContent = file.name;
+          document.getElementById('file-size').textContent = this.formatSize(file.size);
+          document.getElementById('file-info').style.display = 'flex';
+          document.getElementById('drop-zone').style.display = 'none';
+        },
+
+        removeFile() {
+          this.currentFile = null;
+          document.getElementById('file-info').style.display = 'none';
+          document.getElementById('drop-zone').style.display = 'block';
+          document.getElementById('file-input').value = '';
+        },
+
+        formatSize(bytes) {
+          if (bytes < 1024) return bytes + ' B';
+          if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+          return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        },
+
+        updateFilePasswordStrength(password) {
+          const strengthBar = document.querySelector('#filePasswordStrength .strength-bar');
+          const strengthText = document.querySelector('#filePasswordStrength .strength-text');
+          const strengthContainer = document.getElementById('filePasswordStrength');
+          const indicator = document.getElementById('filePasswordIndicator');
+
+          // 获取密码要求列表项
+          const requirements = document.querySelectorAll('#panel-file .password-requirements li');
+
+          if (!password) {
+            strengthContainer.style.display = 'none';
+            indicator.classList.remove('valid');
+            // 重置所有要求项的样式
+            requirements.forEach(req => req.classList.remove('met'));
             return;
           }
-          const result = await decrypt(data, password);
-          outputField.value = result;
-          security.attempts = 0;
+
+          strengthContainer.style.display = 'block';
+
+          let score = 0;
+          const checks = [
+            password.length >= 12,
+            /[A-Z]/.test(password),
+            /[a-z]/.test(password),
+            /[0-9]/.test(password),
+            /[\W_]/.test(password)
+          ];
+
+          checks.forEach((check, index) => {
+            if (check) score++;
+            if (requirements[index]) {
+              if (check) {
+                requirements[index].classList.add('met');
+              } else {
+                requirements[index].classList.remove('met');
+              }
+            }
+          });
+
+          const strengthKeys = ['strength_weak', 'strength_fair', 'strength_good', 'strength_strong', 'strength_very_strong'];
+          const strengthColors = ['#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#27ae60'];
+
+          const strengthKey = strengthKeys[score - 1] || 'strength_weak';
+          const color = strengthColors[score - 1] || '#e74c3c';
+
+          strengthText.textContent = t(strengthKey);
+          strengthText.style.color = color;
+          strengthBar.style.width = `${score * 20}%`;
+          strengthBar.style.backgroundColor = color;
+
+          // 更新密码指示灯：所有标准都符合时显示青色
+          if (score === 5) {
+            indicator.classList.add('valid');
+          } else {
+            indicator.classList.remove('valid');
+          }
+        },
+
+        showFileAlert(message, type) {
+          const alertEl = document.getElementById("file-alert");
+          alertEl.style.display = "block";
+          alertEl.className = `alert alert-${type}`;
+          alertEl.innerHTML = message;
+
+          if (type === "success") {
+            setTimeout(() => {
+              alertEl.style.display = "none";
+            }, 5000);
+          }
+        },
+
+        async readFileAsArrayBuffer(file) {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(new Uint8Array(reader.result));
+            reader.onerror = () => reject(reader.error);
+            reader.readAsArrayBuffer(file);
+          });
+        },
+
+        async deriveKey(password, salt) {
+          const encoder = new TextEncoder();
+          const keyMaterial = await crypto.subtle.importKey(
+            'raw',
+            encoder.encode(password),
+            'PBKDF2',
+            false,
+            ['deriveKey']
+          );
+          return crypto.subtle.deriveKey(
+            { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+            keyMaterial,
+            { name: 'AES-GCM', length: 256 },
+            false,
+            ['encrypt', 'decrypt']
+          );
+        },
+
+        async encryptFile() {
+          if (!this.currentFile) {
+            this.showFileAlert(t('file_select_error'), 'danger');
+            return;
+          }
+
+          const password = document.getElementById('file-password').value;
+          if (!password) {
+            this.showFileAlert(t('file_password_error'), 'danger');
+            return;
+          }
+
+          // 验证密码强度
+          const errors = validatePasswordDetailed(password);
+          if (errors.length > 0) {
+            this.showFileAlert(`<strong>${t('error_password')}</strong>：<br>• ${errors.join("<br>• ")}`, 'danger');
+            return;
+          }
+
+          if (!this.currentFile.name.toLowerCase().endsWith('.zip')) {
+            this.showFileAlert(t('file_invalid_zip'), 'danger');
+            return;
+          }
+
+          const encryptBtn = document.getElementById('file-encrypt-btn');
+          const decryptBtn = document.getElementById('file-decrypt-btn');
+          const progressBar = document.getElementById('file-progress');
+          const progressFill = document.getElementById('progress-fill');
+
+          encryptBtn.disabled = true;
+          decryptBtn.disabled = true;
+          encryptBtn.textContent = t('file_encrypting');
+          encryptBtn.classList.add('processing');
+          progressBar.style.display = 'block';
+
+          try {
+            const fileData = await this.readFileAsArrayBuffer(this.currentFile);
+            progressFill.style.width = '30%';
+
+            // 计算原文件的SHA-256哈希值用于验证
+            const fileHash = await crypto.subtle.digest('SHA-256', fileData);
+            const hashArray = new Uint8Array(fileHash);
+
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const key = await this.deriveKey(password, salt);
+            progressFill.style.width = '60%';
+
+            // 加密整个文件内容
+            const encrypted = await crypto.subtle.encrypt(
+              { name: 'AES-GCM', iv },
+              key,
+              fileData
+            );
+            progressFill.style.width = '90%';
+
+            // 构建安全的加密文件格式：
+            // 签名(8) + 版本(1) + Salt(16) + IV(12) + 原文件哈希(32) + 文件名长度(2) + 文件名 + 密文
+            const encoder = new TextEncoder();
+            const signature = encoder.encode('AESTOOL!');  // 8字节签名
+            const version = new Uint8Array([1]);  // 版本号
+            const nameBytes = encoder.encode(this.currentFile.name);
+            const nameLen = new DataView(new ArrayBuffer(2));
+            nameLen.setUint16(0, nameBytes.length);
+
+            const output = new Uint8Array(
+              8 + 1 + 16 + 12 + 32 + 2 + nameBytes.length + encrypted.byteLength
+            );
+            let offset = 0;
+            output.set(signature, offset); offset += 8;  // 签名
+            output.set(version, offset); offset += 1;    // 版本
+            output.set(salt, offset); offset += 16;      // Salt
+            output.set(iv, offset); offset += 12;        // IV
+            output.set(hashArray, offset); offset += 32; // 原文件哈希
+            output.set(new Uint8Array(nameLen.buffer), offset); offset += 2;  // 文件名长度
+            output.set(nameBytes, offset); offset += nameBytes.length;        // 文件名
+            output.set(new Uint8Array(encrypted), offset);                    // 密文
+
+            const blob = new Blob([output], { type: 'application/octet-stream' });
+            this.downloadBlob(blob, this.currentFile.name + '.enc');
+
+            this.showFileAlert(t('file_complete'), 'success');
+            progressFill.style.width = '100%';
+          } catch (error) {
+            this.showFileAlert(t('file_error') + ': ' + error.message, 'danger');
+          } finally {
+            encryptBtn.disabled = false;
+            decryptBtn.disabled = false;
+            encryptBtn.textContent = t('file_encrypt');
+            decryptBtn.textContent = t('file_decrypt');
+            encryptBtn.classList.remove('processing');
+            setTimeout(() => {
+              progressBar.style.display = 'none';
+              progressFill.style.width = '0%';
+            }, 1000);
+          }
+        },
+
+        async decryptFile() {
+          if (!this.currentFile) {
+            this.showFileAlert(t('file_select_error'), 'danger');
+            return;
+          }
+
+          const password = document.getElementById('file-password').value;
+          if (!password) {
+            this.showFileAlert(t('file_password_error'), 'danger');
+            return;
+          }
+
+          // 验证密码强度
+          const errors = validatePasswordDetailed(password);
+          if (errors.length > 0) {
+            this.showFileAlert(`<strong>${t('error_password')}</strong>：<br>• ${errors.join("<br>• ")}`, 'danger');
+            return;
+          }
+
+          if (!this.currentFile.name.toLowerCase().endsWith('.enc')) {
+            this.showFileAlert(t('file_invalid_enc'), 'danger');
+            return;
+          }
+
+          const encryptBtn = document.getElementById('file-encrypt-btn');
+          const decryptBtn = document.getElementById('file-decrypt-btn');
+          const progressBar = document.getElementById('file-progress');
+          const progressFill = document.getElementById('progress-fill');
+
+          encryptBtn.disabled = true;
+          decryptBtn.disabled = true;
+          decryptBtn.textContent = t('file_decrypting');
+          decryptBtn.classList.add('processing');
+          progressBar.style.display = 'block';
+
+          try {
+            const fileData = await this.readFileAsArrayBuffer(this.currentFile);
+            progressFill.style.width = '30%';
+
+            // 验证文件签名
+            const decoder = new TextDecoder();
+            const signature = decoder.decode(fileData.slice(0, 8));
+            if (signature !== 'AESTOOL!') {
+              this.showFileAlert(t('file_format_error'), 'danger');
+              return;
+            }
+
+            // 解析新格式文件头：签名(8) + 版本(1) + Salt(16) + IV(12) + 原文件哈希(32) + 文件名长度(2) + 文件名 + 密文
+            const version = fileData[8];
+            const salt = fileData.slice(9, 25);
+            const iv = fileData.slice(25, 37);
+            const storedHash = fileData.slice(37, 69);
+            const nameLen = new DataView(fileData.buffer, 69, 2).getUint16(0);
+            const nameBytes = fileData.slice(71, 71 + nameLen);
+            const ciphertext = fileData.slice(71 + nameLen);
+
+            const originalName = decoder.decode(nameBytes);
+            progressFill.style.width = '60%';
+
+            const key = await this.deriveKey(password, salt);
+            const decrypted = await crypto.subtle.decrypt(
+              { name: 'AES-GCM', iv },
+              key,
+              ciphertext
+            );
+            progressFill.style.width = '90%';
+
+            // 验证解密后的文件哈希
+            const decryptedHash = await crypto.subtle.digest('SHA-256', decrypted);
+            const hashMatch = this.compareHashes(new Uint8Array(decryptedHash), new Uint8Array(storedHash));
+
+            if (!hashMatch) {
+              this.showFileAlert(t('file_auth_error'), 'danger');
+              return;
+            }
+
+            const blob = new Blob([decrypted], { type: 'application/zip' });
+            this.downloadBlob(blob, originalName);
+
+            this.showFileAlert(t('file_complete'), 'success');
+            progressFill.style.width = '100%';
+          } catch (error) {
+            if (error.name === 'OperationError') {
+              this.showFileAlert(t('file_auth_error'), 'danger');
+            } else {
+              this.showFileAlert(t('file_error') + ': ' + error.message, 'danger');
+            }
+          } finally {
+            encryptBtn.disabled = false;
+            decryptBtn.disabled = false;
+            encryptBtn.textContent = t('file_encrypt');
+            decryptBtn.textContent = t('file_decrypt');
+            decryptBtn.classList.remove('processing');
+            setTimeout(() => {
+              progressBar.style.display = 'none';
+              progressFill.style.width = '0%';
+            }, 1000);
+          }
+        },
+
+        downloadBlob(blob, filename) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        },
+
+        compareHashes(a, b) {
+          if (a.length !== b.length) return false;
+          for (let i = 0; i < a.length; i++) {
+            if (a[i] !== b[i]) return false;
+          }
+          return true;
+        }
+      };
+
+      // ========================================
+      // 8. 初始化
+      // ========================================
+      function initSecurity() {
+        const saved = JSON.parse(localStorage.getItem('securityState'));
+        if (saved && saved.lockTime > Date.now()) {
+          if (saved.timestamp && Date.now() - saved.timestamp < 24 * 60 * 60 * 1000) {
+            security.attempts = saved.attempts;
+            security.locked = true;
+            security.lockTime = saved.lockTime - Date.now();
+            startLockCountdown(security.lockTime);
+          } else {
+            localStorage.removeItem('securityState');
+          }
+        }
+      }
+
+      function init() {
+        // 初始化主题
+        ThemeManager.init();
+
+        // 初始化背景图片
+        BgManager.init();
+
+        // 初始化标签页导航
+        TabNav.init();
+
+        // 初始化文件加密
+        FileCrypto.init();
+
+        // 初始化语言
+        setLanguage(currentLang);
+
+        // 绑定语言选择事件
+        document.getElementById('lang-select').addEventListener('change', (e) => {
+          setLanguage(e.target.value);
         });
-      } finally {
-        const elapsed = Date.now() - startTime;
-        timeTakenEl.textContent = `解密完成用时：${formatElapsedTime(elapsed)}`;
-        // 恢复所有控件
-        encryptBtn.disabled = false;
-        decryptBtn.disabled = false;
-        inputField.disabled = false;
-        passwordField.disabled = false;
-        outputField.disabled = false;
-        encryptBtn.textContent = "加密";
-        decryptBtn.textContent = "解密";
-        // 移除闪烁动画效果
-        decryptBtn.classList.remove("processing");
-      }
-    }
 
-    // 初始化安全状态
-    function initSecurity() {
-      const saved = JSON.parse(localStorage.getItem('securityState'));
-      if (saved && saved.lockTime > Date.now()) {
-        security.attempts = saved.attempts;
-        security.locked = true;
-        startLockCountdown(saved.lockTime - Date.now());
-      }
-    }
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            setLanguage(btn.dataset.lang);
+          });
+        });
 
-    initSecurity();
+        // 初始化安全状态
+        initSecurity();
+
+        // 绑定密码强度检测
+        document.getElementById('password').addEventListener('input', (e) => {
+          updatePasswordStrength(e.target.value);
+        });
+
+        // 暴露全局函数供onclick使用
+        window.handleEncrypt = handleEncrypt;
+        window.handleDecrypt = handleDecrypt;
+
+        // 初始化自定义光标
+        initTargetCursor();
+      }
+
+      // ========================================
+      // 9. 自定义光标
+      // ========================================
+      function initTargetCursor() {
+        // 检查是否为移动设备
+        const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase()) ||
+          ('ontouchstart' in window && window.innerWidth <= 768);
+
+        if (isMobile) {
+          document.getElementById('target-cursor').style.display = 'none';
+          return;
+        }
+
+        const cursor = document.getElementById('target-cursor');
+        const dot = document.getElementById('cursor-dot');
+        const corners = cursor.querySelectorAll('.target-cursor-corner');
+        const targetSelector = 'button, .nav-tab, .theme-btn, .lang-btn, .btn-secondary, .icon-btn, a, .file-drop-zone';
+
+        // 隐藏默认光标
+        document.body.style.cursor = 'none';
+
+        let activeTarget = null;
+        let spinTl = null;
+        let isActive = false;
+        let targetCornerPositions = null;
+        let activeStrength = { current: 0 };
+
+        const constants = {
+          borderWidth: 3,
+          cornerSize: 12
+        };
+
+        // 移动光标
+        const moveCursor = (x, y) => {
+          gsap.to(cursor, {
+            x: x,
+            y: y,
+            duration: 0.1,
+            ease: 'power3.out'
+          });
+        };
+
+        // 初始位置
+        gsap.set(cursor, {
+          xPercent: -50,
+          yPercent: -50,
+          x: window.innerWidth / 2,
+          y: window.innerHeight / 2
+        });
+
+        // 创建旋转时间线
+        const createSpinTimeline = () => {
+          if (spinTl) {
+            spinTl.kill();
+          }
+          spinTl = gsap.timeline({ repeat: -1 })
+            .to(cursor, { rotation: '+=360', duration: 2, ease: 'none' });
+        };
+
+        createSpinTimeline();
+
+        // 视差效果函数
+        const tickerFn = () => {
+          if (!targetCornerPositions || !cursor || !corners) return;
+
+          const strength = activeStrength.current;
+          if (strength === 0) return;
+
+          const cursorX = gsap.getProperty(cursor, 'x');
+          const cursorY = gsap.getProperty(cursor, 'y');
+
+          corners.forEach((corner, i) => {
+            const currentX = gsap.getProperty(corner, 'x');
+            const currentY = gsap.getProperty(corner, 'y');
+
+            const targetX = targetCornerPositions[i].x - cursorX;
+            const targetY = targetCornerPositions[i].y - cursorY;
+
+            const finalX = currentX + (targetX - currentX) * strength;
+            const finalY = currentY + (targetY - currentY) * strength;
+
+            const duration = strength >= 0.99 ? 0.2 : 0.05;
+
+            gsap.to(corner, {
+              x: finalX,
+              y: finalY,
+              duration: duration,
+              ease: duration === 0 ? 'none' : 'power1.out',
+              overwrite: 'auto'
+            });
+          });
+        };
+
+        // 鼠标移动事件
+        window.addEventListener('mousemove', (e) => {
+          moveCursor(e.clientX, e.clientY);
+        });
+
+        // 鼠标按下事件
+        window.addEventListener('mousedown', () => {
+          gsap.to(dot, { scale: 0.7, duration: 0.3 });
+          gsap.to(cursor, { scale: 0.9, duration: 0.2 });
+        });
+
+        // 鼠标释放事件
+        window.addEventListener('mouseup', () => {
+          gsap.to(dot, { scale: 1, duration: 0.3 });
+          gsap.to(cursor, { scale: 1, duration: 0.2 });
+        });
+
+        // 鼠标悬停事件
+        window.addEventListener('mouseover', (e) => {
+          const target = e.target.closest(targetSelector);
+          if (!target || !cursor || !corners) return;
+          if (activeTarget === target) return;
+
+          activeTarget = target;
+          isActive = true;
+
+          // 停止旋转
+          gsap.killTweensOf(cursor, 'rotation');
+          spinTl?.pause();
+          gsap.set(cursor, { rotation: 0 });
+
+          // 计算目标位置
+          const rect = target.getBoundingClientRect();
+          const cursorX = gsap.getProperty(cursor, 'x');
+          const cursorY = gsap.getProperty(cursor, 'y');
+
+          targetCornerPositions = [
+            { x: rect.left - constants.borderWidth, y: rect.top - constants.borderWidth },
+            { x: rect.right + constants.borderWidth - constants.cornerSize, y: rect.top - constants.borderWidth },
+            { x: rect.right + constants.borderWidth - constants.cornerSize, y: rect.bottom + constants.borderWidth - constants.cornerSize },
+            { x: rect.left - constants.borderWidth, y: rect.bottom + constants.borderWidth - constants.cornerSize }
+          ];
+
+          gsap.ticker.add(tickerFn);
+
+          gsap.to(activeStrength, {
+            current: 1,
+            duration: 0.2,
+            ease: 'power2.out'
+          });
+
+          corners.forEach((corner, i) => {
+            gsap.to(corner, {
+              x: targetCornerPositions[i].x - cursorX,
+              y: targetCornerPositions[i].y - cursorY,
+              duration: 0.2,
+              ease: 'power2.out'
+            });
+          });
+        });
+
+        // 鼠标离开事件
+        window.addEventListener('mouseout', (e) => {
+          const target = e.target.closest(targetSelector);
+          if (!target) return;
+
+          gsap.ticker.remove(tickerFn);
+          isActive = false;
+          targetCornerPositions = null;
+          gsap.set(activeStrength, { current: 0, overwrite: true });
+          activeTarget = null;
+
+          // 恢复角落位置
+          corners.forEach((corner, index) => {
+            const positions = [
+              { x: -constants.cornerSize * 1.5, y: -constants.cornerSize * 1.5 },
+              { x: constants.cornerSize * 0.5, y: -constants.cornerSize * 1.5 },
+              { x: constants.cornerSize * 0.5, y: constants.cornerSize * 0.5 },
+              { x: -constants.cornerSize * 1.5, y: constants.cornerSize * 0.5 }
+            ];
+            gsap.to(corner, {
+              x: positions[index].x,
+              y: positions[index].y,
+              duration: 0.3,
+              ease: 'power3.out'
+            });
+          });
+
+          // 恢复旋转
+          setTimeout(() => {
+            if (!activeTarget && cursor && spinTl) {
+              const currentRotation = gsap.getProperty(cursor, 'rotation');
+              const normalizedRotation = currentRotation % 360;
+              spinTl.kill();
+              spinTl = gsap.timeline({ repeat: -1 })
+                .to(cursor, { rotation: '+=360', duration: 2, ease: 'none' });
+              gsap.to(cursor, {
+                rotation: normalizedRotation + 360,
+                duration: 2 * (1 - normalizedRotation / 360),
+                ease: 'none',
+                onComplete: () => {
+                  spinTl?.restart();
+                }
+              });
+            }
+          }, 50);
+        });
+      }
+
+      // 启动应用
+      init();
+    })();
   </script>
 </body>
 </html>
